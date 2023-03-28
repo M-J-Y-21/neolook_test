@@ -1,26 +1,35 @@
 # views.py
+import pyautogui
+import datetime
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-import subprocess
+from rest_framework import viewsets
+from .models import Recording
+from .serializers import RecordingSerializer
 
-class StartRecordingView(APIView):
-    def post(self, request):
-        # Get recording parameters from the request body
-        recording_params = request.data
+class RecordingViewSet(viewsets.ModelViewSet):
+    queryset = Recording.objects.all()
+    serializer_class = RecordingSerializer
 
-        # Start recording with ffmpeg
-        subprocess.Popen(['ffmpeg', '-f', 'x11grab', '-s', recording_params['resolution'], '-framerate', recording_params['framerate'], '-i', ':0.0', '-c:v', 'libx264', 'output.mp4'])
+    def create(self, request):
+        # Start screen recording process
+        video_file = 'recordings/{}.mp4'.format(datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'))
+        pyautogui.screenshot(video_file, fps=30)
 
+        # Save recording details to database
+        recording = Recording.objects.create(video_file=video_file)
+        serializer = RecordingSerializer(recording)
+        return Response(serializer.data)
 
-        return Response({'status': 'Recording started'})
+    def update(self, request, pk=None):
+        recording = self.get_object()
 
-class StopRecordingView(APIView):
-    def get(self, request):
-        # Stop recording with ffmpeg
-        subprocess.Popen(['pkill', '-f', 'ffmpeg'])
+        # Stop screen recording process
+        # ...
 
-        # Save recorded video
-        subprocess.Popen(['mv', 'output.mp4', '/path/to/recordings/output.mp4'])
+        recording.end_time = datetime.datetime.now()
+        recording.save()
 
-        return Response({'status': 'Recording stopped and saved'})
+        serializer = RecordingSerializer(recording)
+        return Response(serializer.data)

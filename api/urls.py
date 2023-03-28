@@ -1,9 +1,10 @@
-# urls.py
+from django.urls import path, include
+from rest_framework import routers
+from .views import RecordingViewSet
 
-from django.urls import path
-from .views import StartRecordingView, StopRecordingView
+router = routers.DefaultRouter()
+router.register(r'recordings', RecordingViewSet)
 
 urlpatterns = [
-    path('start/', StartRecordingView.as_view()),
-    path('stop/', StopRecordingView.as_view()),
+    path('', include(router.urls)),
 ]
